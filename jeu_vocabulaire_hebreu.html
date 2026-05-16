@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מִשְׂחָק — Jeu de Vocabulaire Hébreu</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Frank+Ruhl+Libre:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0d0d;
+  --card: #161616;
+  --card-hover: #1e1e1e;
+  --border: #2a2a2a;
+  --gold: #c9a84c;
+  --gold-light: #e8c96a;
+  --gold-dim: rgba(201,168,76,0.15);
+  --text: #e8e4dc;
+  --text-muted: #888;
+  --accent: #4a7c94;
+  --accent-dim: rgba(74,124,148,0.15);
+  --success: #3d7a55;
+  --success-bg: #1a2e22;
+  --error: #8b3a3a;
+  --error-bg: #2a1515;
+  --played-border: #3d7a55;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;padding:0 0 80px}
+
+/* NAV TABS */
+.nav{display:flex;border-bottom:1px solid var(--border);background:#111;position:sticky;top:0;z-index:100}
+.nav-tab{flex:1;padding:14px 8px;text-align:center;cursor:pointer;font-size:0.78rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid transparent;transition:all 0.2s}
+.nav-tab:hover{color:var(--text)}
+.nav-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.nav-heb{font-family:'Frank Ruhl Libre',serif;font-size:1rem;letter-spacing:0;direction:rtl}
+.page{display:none;padding:32px 20px;max-width:780px;margin:0 auto}
+.page.active{display:block}
+
+/* HEADER */
+.page-header{text-align:center;margin-bottom:36px;padding-bottom:28px;border-bottom:1px solid var(--border)}
+.page-header .heb-title{font-family:'Frank Ruhl Libre',serif;font-size:2.6rem;color:var(--gold);direction:rtl;margin-bottom:6px}
+.page-header h2{font-family:'Playfair Display',serif;font-size:0.95rem;font-weight:400;color:var(--text-muted);letter-spacing:0.3em;text-transform:uppercase}
+
+/* LEXICON */
+.lex-search{width:100%;padding:10px 16px;background:var(--card);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.9rem;margin-bottom:24px}
+.lex-search::placeholder{color:var(--text-muted)}
+.lex-search:focus{outline:none;border-color:var(--gold)}
+.lex-grid{display:flex;flex-direction:column;gap:6px}
+.lex-item{display:grid;grid-template-columns:36px 180px 1fr auto;align-items:center;gap:14px;padding:13px 18px;background:var(--card);border:1px solid var(--border);border-radius:5px;transition:all 0.2s;cursor:pointer}
+.lex-item:hover{border-color:#3a3a3a;background:var(--card-hover)}
+.lex-num{font-size:0.72rem;color:var(--text-muted);text-align:center}
+.lex-heb{font-family:'Frank Ruhl Libre',serif;font-size:1.4rem;color:var(--gold-light);direction:rtl}
+.lex-info{display:flex;flex-direction:column;gap:2px}
+.lex-fr{font-size:0.9rem;color:var(--text)}
+.lex-translit{font-size:0.76rem;color:var(--text-muted);font-style:italic}
+.lex-audio{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all 0.2s;flex-shrink:0}
+.lex-audio:hover{border-color:var(--gold);color:var(--gold)}
+.lex-audio.playing{border-color:var(--gold);color:var(--gold);background:var(--gold-dim)}
+.lex-tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:3px;background:#1a2500;color:#7ab83a;border:1px solid #3d6020;margin-top:2px}
+
+/* GAME */
+.score-bar{display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap;align-items:center}
+.score-pill{padding:6px 16px;border:1px solid var(--border);border-radius:20px;font-size:0.8rem;color:var(--text-muted)}
+.score-pill span{color:var(--gold);font-weight:500;margin-left:4px}
+.score-pill.streak span{color:#e88c3a}
+.progress-bar{height:2px;background:var(--border);border-radius:2px;margin-bottom:28px;overflow:hidden}
+.progress-fill{height:100%;background:var(--gold);transition:width 0.5s ease}
+
+.question-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:28px 24px;margin-bottom:20px;animation:fadeIn 0.4s ease}
+.question-mode{font-size:0.72rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-muted);margin-bottom:14px}
+.question-heb{font-family:'Frank Ruhl Libre',serif;font-size:2rem;color:var(--gold-light);direction:rtl;text-align:center;line-height:1.4;margin-bottom:8px}
+.question-translit{text-align:center;font-size:0.82rem;color:var(--text-muted);font-style:italic;margin-bottom:4px}
+.question-fr{text-align:center;font-size:1rem;color:var(--text);margin-bottom:6px}
+.audio-btn{display:flex;align-items:center;justify-content:center;margin:12px auto 0;gap:8px;padding:8px 18px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text-muted);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.8rem;transition:all 0.2s}
+.audio-btn:hover{border-color:var(--gold);color:var(--gold)}
+.audio-btn.playing{border-color:var(--gold);color:var(--gold);background:var(--gold-dim)}
+
+/* SENTENCE BUILD */
+.sentence-label{font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px}
+.drop-zone{min-height:56px;background:#111;border:1.5px dashed var(--border);border-radius:6px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:20px;transition:border-color 0.2s;direction:rtl}
+.drop-zone.has-tiles{border-color:#3a3a3a;border-style:solid}
+.drop-zone.correct{border-color:var(--success);background:var(--success-bg)}
+.drop-zone.wrong{border-color:var(--error);background:var(--error-bg)}
+
+.tile{display:inline-flex;align-items:center;padding:7px 13px;background:var(--card);border:1px solid #3a3a3a;border-radius:4px;cursor:pointer;font-family:'Frank Ruhl Libre',serif;font-size:1.05rem;color:var(--gold-light);direction:rtl;transition:all 0.18s;user-select:none;animation:tileIn 0.2s ease}
+.tile:hover{border-color:var(--gold);background:var(--gold-dim);transform:translateY(-1px)}
+.tile.placed{background:var(--gold-dim);border-color:var(--gold);color:var(--gold-light)}
+.tile.placed:hover{border-color:#e8c96a}
+.tile.correct-tile{background:var(--success-bg);border-color:var(--played-border);color:#7fcc97;cursor:default;transform:none}
+.tile.wrong-tile{background:var(--error-bg);border-color:var(--error);color:#cc7f7f;cursor:default;transform:none}
+
+.tile-pool{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px;min-height:48px;direction:rtl}
+
+.game-actions{display:flex;gap:10px;flex-wrap:wrap}
+.btn{padding:10px 22px;border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:4px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.84rem;letter-spacing:0.05em;transition:all 0.2s}
+.btn:hover{border-color:var(--gold);color:var(--gold)}
+.btn-primary{background:var(--gold);color:#0d0d0d;border-color:var(--gold);font-weight:500}
+.btn-primary:hover{background:var(--gold-light);border-color:var(--gold-light)}
+.btn-primary:disabled{opacity:0.4;cursor:not-allowed}
+.btn-sm{padding:7px 14px;font-size:0.78rem}
+
+.feedback{padding:14px 18px;border-radius:6px;margin-bottom:20px;font-size:0.9rem;animation:fadeIn 0.3s ease}
+.feedback.correct{background:var(--success-bg);border:1px solid var(--played-border);color:#7fcc97}
+.feedback.wrong{background:var(--error-bg);border:1px solid var(--error);color:#cc7f7f}
+.feedback .correct-answer{margin-top:6px;font-size:0.82rem;color:var(--text-muted);direction:rtl;font-family:'Frank Ruhl Libre',serif;font-size:1rem}
+
+/* QUIZ MODE (FR→HEB word choice) */
+.choices-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px}
+.choice{padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:6px;cursor:pointer;text-align:center;font-family:'Frank Ruhl Libre',serif;font-size:1.3rem;color:var(--gold-light);direction:rtl;transition:all 0.2s}
+.choice:hover{border-color:var(--gold);background:var(--gold-dim)}
+.choice.correct-choice{background:var(--success-bg);border-color:var(--played-border);color:#7fcc97;cursor:default}
+.choice.wrong-choice{background:var(--error-bg);border-color:var(--error);color:#cc7f7f;cursor:default}
+
+/* LISTEN mode */
+.listen-prompt{text-align:center;padding:20px;font-size:0.9rem;color:var(--text-muted);margin-bottom:8px}
+.listen-choices{display:flex;flex-direction:column;gap:8px;margin-bottom:24px}
+.listen-choice{padding:12px 18px;background:var(--card);border:1px solid var(--border);border-radius:5px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:all 0.2s}
+.listen-choice:hover{border-color:var(--gold);background:var(--gold-dim)}
+.listen-choice.correct-choice{background:var(--success-bg);border-color:var(--played-border)}
+.listen-choice.wrong-choice{background:var(--error-bg);border-color:var(--error)}
+.listen-choice .lc-fr{font-size:0.92rem;color:var(--text)}
+.listen-choice .lc-heb{font-family:'Frank Ruhl Libre',serif;font-size:1.1rem;color:var(--text-muted);direction:rtl;margin-left:auto}
+
+/* GAME OVER */
+.game-over{text-align:center;padding:40px 20px;animation:fadeIn 0.5s ease}
+.game-over .big-score{font-family:'Playfair Display',serif;font-size:4rem;color:var(--gold);margin:16px 0}
+.game-over .medal{font-size:3rem;margin-bottom:8px}
+.stats-row{display:flex;gap:16px;justify-content:center;margin:24px 0;flex-wrap:wrap}
+.stat-box{padding:16px 24px;background:var(--card);border:1px solid var(--border);border-radius:6px;text-align:center}
+.stat-box .sv{font-size:1.6rem;font-weight:500;color:var(--gold)}
+.stat-box .sl{font-size:0.75rem;color:var(--text-muted);letter-spacing:0.08em;margin-top:4px}
+
+/* LISTEN page */
+.listen-page .player-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:16px}
+.listen-list{display:flex;flex-direction:column;gap:6px}
+.listen-item{display:grid;grid-template-columns:36px 1fr auto;align-items:center;gap:14px;padding:13px 18px;background:var(--card);border:1px solid var(--border);border-radius:5px;cursor:pointer;transition:all 0.2s}
+.listen-item:hover{border-color:#3a3a3a;background:var(--card-hover)}
+.listen-item.playing{border-color:var(--gold);background:#1a1500}
+.listen-item.played{border-color:var(--played-border);background:var(--success-bg)}
+.listen-item .li-heb{font-family:'Frank Ruhl Libre',serif;font-size:1.3rem;color:var(--gold-light);direction:rtl}
+.listen-item .li-fr{font-size:0.85rem;color:var(--text-muted);margin-top:2px}
+.listen-item .li-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all 0.2s;flex-shrink:0}
+.listen-item .li-btn:hover{border-color:var(--gold);color:var(--gold)}
+.listen-item.playing .li-btn{border-color:var(--gold);color:var(--gold);background:var(--gold-dim)}
+.listen-item.played .li-btn{border-color:var(--played-border);color:#5db87a}
+.listen-controls{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+.speed-ctl{display:flex;align-items:center;gap:8px;margin-left:auto}
+.speed-ctl label{font-size:0.8rem;color:var(--text-muted)}
+.speed-ctl select{background:var(--card);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:0.8rem;cursor:pointer}
+.pb-text{font-size:0.75rem;color:var(--text-muted);text-align:right;margin-bottom:6px}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes tileIn{from{opacity:0;transform:scale(0.85)}to{opacity:1;transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,0.3)}50%{box-shadow:0 0 0 6px rgba(201,168,76,0)}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-tab active" onclick="showPage('game')" id="tab-game">🎮 Jeu</div>
+  <div class="nav-tab" onclick="showPage('listen')" id="tab-listen"><span class="nav-heb">שמע</span> Écoute</div>
+  <div class="nav-tab" onclick="showPage('lexicon')" id="tab-lexicon">📖 Lexique</div>
+</nav>
+
+<!-- GAME PAGE -->
+<div id="page-game" class="page active">
+  <div class="page-header">
+    <div class="heb-title">מִשְׂחָק</div>
+    <h2>Jeu de vocabulaire · 20 mots</h2>
+  </div>
+  <div id="game-content"></div>
+</div>
+
+<!-- LISTEN PAGE -->
+<div id="page-listen" class="page">
+  <div class="page-header">
+    <div class="heb-title">שמע ולמד</div>
+    <h2>Écoute &amp; mémorise</h2>
+  </div>
+  <div class="listen-controls">
+    <button class="btn btn-primary btn-sm" onclick="listenPlayAll()">▶ Lire tout</button>
+    <button class="btn btn-sm" onclick="listenStop()">■ Stop</button>
+    <button class="btn btn-sm" onclick="listenReset()">↺ Reset</button>
+    <div class="speed-ctl">
+      <label>Vitesse :</label>
+      <select id="listenSpeed">
+        <option value="0.6">Lente</option>
+        <option value="0.8" selected>Normale</option>
+        <option value="1.0">Rapide</option>
+      </select>
+    </div>
+  </div>
+  <div class="pb-text" id="listenPbText">0 / 20 écoutés</div>
+  <div class="progress-bar" style="margin-bottom:20px"><div class="progress-fill" id="listenPbFill" style="width:0%"></div></div>
+  <div class="listen-list" id="listenList"></div>
+</div>
+
+<!-- LEXICON PAGE -->
+<div id="page-lexicon" class="page">
+  <div class="page-header">
+    <div class="heb-title">מִלּוֹן</div>
+    <h2>Lexique complet · 20 mots</h2>
+  </div>
+  <div class="listen-controls" style="margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <button class="btn btn-primary btn-sm" onclick="lexPlayAll('ordered')">▶ Lire tout</button>
+    <button class="btn btn-sm btn-shuffle" id="lexShuffleHeb" onclick="lexPlayAll('heb')">⇄ Hébreu aléatoire</button>
+    <button class="btn btn-sm btn-shuffle" id="lexShuffleFr" onclick="lexPlayAll('fr')">⇄ Français aléatoire</button>
+    <button class="btn btn-sm btn-shuffle" id="lexShuffleMix" onclick="lexPlayAll('mix')">⇄ Mixte aléatoire</button>
+    <button class="btn btn-sm" onclick="lexStop()">■ Stop</button>
+    <div class="speed-ctl"><label>Vitesse :</label><select id="lexSpeed"><option value="0.6">Lente</option><option value="0.8" selected>Normale</option><option value="1.0">Rapide</option></select></div>
+  </div>
+  <div id="lexNowPlaying" style="min-height:36px;margin-bottom:12px;text-align:center;font-family:'Frank Ruhl Libre',serif;font-size:1.3rem;color:var(--gold-light);direction:rtl;display:none"></div>
+  <input class="lex-search" type="text" placeholder="Chercher un mot en hébreu ou en français…" oninput="filterLex(this.value)" />
+  <div class="lex-grid" id="lexGrid"></div>
+</div>
+
+<script>
+const words = [
+  {heb:"מומחה",translit:"mumkhé",fr:"expert",isNew:false,sentences:[["הוא מומחה ברפואה","Il est expert en médecine"],["אני צריך מומחה","J'ai besoin d'un expert"],["יש כאן מומחים רבים","Il y a beaucoup d'experts ici"]]},
+  {heb:"מהפכה",translit:"mahapékhà",fr:"révolution",isNew:false,sentences:[["המהפכה שינתה את העולם","La révolution a changé le monde"],["זאת מהפכה גדולה","C'est une grande révolution"],["המהפכה הצרפתית הייתה קשה","La Révolution française était difficile"]]},
+  {heb:"עיוור",translit:"ivér",fr:"aveugle",isNew:false,sentences:[["הוא עיוור מלידה","Il est aveugle de naissance"],["הכלב עוזר לעיוור","Le chien aide l'aveugle"],["היא עיוורת לסכנה","Elle est aveugle au danger"]]},
+  {heb:"מבטיח",translit:"mavtíakh",fr:"promet",isNew:false,sentences:[["אני מבטיח לבוא","Je promets de venir"],["הוא מבטיח לעזור","Il promet d'aider"],["היא מבטיחה לשמור","Elle promet de garder"]]},
+  {heb:"להחליף",translit:"lehakhlíf",fr:"changer",isNew:false,sentences:[["אני רוצה להחליף את החולצה","Je veux changer de chemise"],["הוא החליף את הנעליים","Il a changé de chaussures"],["היא החליפה את הרופא","Elle a remplacé le médecin"]]},
+  {heb:"גרב",translit:"gérev",fr:"chaussette",isNew:false,sentences:[["הגרב שלי אדומה","Ma chaussette est rouge"],["יש לי גרביים חדשות","J'ai de nouvelles chaussettes"],["איפה הגרב שלי?","Où est ma chaussette ?"]]},
+  {heb:"יציע",translit:"yatsía",fr:"tribune",isNew:false,sentences:[["אנחנו יושבים ביציע","Nous sommes assis à la tribune"],["היציע מלא באנשים","La tribune est pleine de gens"],["איפה היציאה מהיציע?","Où est la sortie de la tribune ?"]]},
+  {heb:"פיטורים",translit:"pitourím",fr:"licenciement",isNew:false,sentences:[["הוא קיבל פיטורים","Il a été licencié"],["היו פיטורים בחברה","Il y a eu des licenciements dans l'entreprise"],["הפיטורים היו קשים","Les licenciements étaient difficiles"]]},
+  {heb:"שלווה",translit:"shálva",fr:"sérénité",isNew:false,sentences:[["יש שלווה בבית","Il y a de la sérénité à la maison"],["אני מחפש שלווה","Je cherche la sérénité"],["הטבע נותן שלווה","La nature donne de la sérénité"]]},
+  {heb:"להקה",translit:"laháka",fr:"groupe",isNew:false,sentences:[["הלהקה שרה יפה","Le groupe chante bien"],["אני אוהב את הלהקה הזאת","J'aime ce groupe"],["הלהקה משחקת הערב","Le groupe joue ce soir"]]},
+  {heb:"הרעם",translit:"ha-rá'am",fr:"tonnerre",isNew:true,sentences:[["הרעם הפחיד את הילדים","Le tonnerre a effrayé les enfants"],["שמעתי רעם חזק","J'ai entendu un tonnerre fort"],["אחרי הברק בא הרעם","Après l'éclair vient le tonnerre"]]},
+  {heb:"עקבות",translit:"ikavót",fr:"traces",isNew:true,sentences:[["מצאנו עקבות בשלג","Nous avons trouvé des traces dans la neige"],["הוא עקב אחרי עקבותיו","Il a suivi ses traces"],["העקבות הובילו ליער","Les traces menaient à la forêt"]]},
+  {heb:"סופה",translit:"soufá",fr:"tempête",isNew:true,sentences:[["הסופה הייתה חזקה","La tempête était forte"],["אנחנו מחכים לסוף הסופה","Nous attendons la fin de la tempête"],["הסופה הרסה עצים רבים","La tempête a détruit beaucoup d'arbres"]]},
+  {heb:"חומק",translit:"khomék",fr:"esquive",isNew:true,sentences:[["הוא חומק מהשאלות","Il esquive les questions"],["השחקן חמק מהמגן","Le joueur a esquivé le défenseur"],["היא תמיד חומקת מהאחריות","Elle esquive toujours la responsabilité"]]},
+  {heb:"הלאה",translit:"hál'a",fr:"plus loin",isNew:true,sentences:[["הוא הלך הלאה","Il est allé plus loin"],["המסע נמשך הלאה","Le voyage continue plus loin"],["אל תסתכל הלאה מדי","Ne regarde pas trop loin"]]},
+  {heb:"כישוף",translit:"kishóuf",fr:"sorcellerie",isNew:true,sentences:[["הילדים אוהבים סיפורי כישוף","Les enfants aiment les histoires de sorcellerie"],["הוא האמין בכישוף","Il croyait en la sorcellerie"],["הכישוף היה בלתי אפשרי","La sorcellerie était impossible"]]},
+  {heb:"מלכודת",translit:"malkoúdet",fr:"piège",isNew:true,sentences:[["הצייד הניח מלכודת","Le chasseur a posé un piège"],["הוא נפל למלכודת","Il est tombé dans le piège"],["המלכודת הייתה חכמה","Le piège était intelligent"]]},
+  {heb:"כישרון",translit:"kisharón",fr:"talent",isNew:true,sentences:[["יש לה כישרון מוזיקלי","Elle a un talent musical"],["הכישרון שלו הדהים את כולם","Son talent a impressionné tout le monde"],["כישרון ללא עבודה לא מספיק","Le talent sans travail ne suffit pas"]]},
+  {heb:"מזדקן",translit:"mizdakén",fr:"vieillit",isNew:true,sentences:[["הוא מזדקן בחן","Il vieillit avec grâce"],["כולם מזדקנים עם הזמן","Tout le monde vieillit avec le temps"],["היין מזדקן יפה","Le vin vieillit bien"]]},
+  {heb:"מסוכן",translit:"mesoukán",fr:"dangereux",isNew:true,sentences:[["הכביש הזה מסוכן","Cette route est dangereuse"],["זה מסוכן ללכת לבד בלילה","C'est dangereux de marcher seul la nuit"],["החיה הייתה מסוכנת","L'animal était dangereux"]]}
+];
+
+// ---- AUDIO ----
+let hebrewVoice = null;
+function loadVoices(){
+  const vs = speechSynthesis.getVoices();
+  hebrewVoice = vs.find(v=>v.lang==='he-IL') || vs.find(v=>v.lang.startsWith('he')) || null;
+}
+if('speechSynthesis' in window){loadVoices();speechSynthesis.onvoiceschanged=loadVoices;}
+
+function speak(text, rate=0.8){
+  return new Promise(res=>{
+    speechSynthesis.cancel();
+    setTimeout(()=>{
+      const u=new SpeechSynthesisUtterance(text);
+      u.lang='he-IL';u.rate=rate;
+      if(hebrewVoice)u.voice=hebrewVoice;
+      u.onend=u.onerror=res;
+      speechSynthesis.speak(u);
+    },80);
+  });
+}
+
+// ---- PAGE NAV ----
+function showPage(p){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.getElementById('tab-'+p).classList.add('active');
+}
+
+// =================== GAME ===================
+let gameQueue=[], gameIdx=0, score=0, streak=0, maxStreak=0, correctCount=0;
+const TOTAL_ROUNDS = 20;
+
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b;}
+
+// Build a round for each word: cycle through 3 modes
+// mode 0: tile-sentence (heb→arrange french)
+// mode 1: choose-heb (fr→pick hebrew)
+// mode 2: listen (audio→pick fr)
+function buildGameQueue(){
+  let q=[];
+  const shuffled=shuffle([...words]);
+  shuffled.forEach((w,i)=>{
+    const mode=i%3;
+    const sentIdx=Math.floor(Math.random()*3);
+    q.push({word:w, mode, sentIdx});
+  });
+  return q;
+}
+
+function startGame(){
+  gameQueue=buildGameQueue();
+  gameIdx=0; score=0; streak=0; maxStreak=0; correctCount=0;
+  renderRound();
+}
+
+function renderRound(){
+  const gc=document.getElementById('game-content');
+  if(gameIdx>=TOTAL_ROUNDS){renderGameOver();return;}
+  const round=gameQueue[gameIdx];
+  const pct=Math.round((gameIdx/TOTAL_ROUNDS)*100);
+  let html=`
+    <div class="score-bar">
+      <div class="score-pill">Score<span id="scoreVal">${score}</span></div>
+      <div class="score-pill streak">Série<span id="streakVal">${streak}</span></div>
+      <div class="score-pill">Question<span>${gameIdx+1}/${TOTAL_ROUNDS}</span></div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+  `;
+  if(round.mode===0) html+=buildTileMode(round);
+  else if(round.mode===1) html+=buildChooseMode(round);
+  else html+=buildListenMode(round);
+  gc.innerHTML=html;
+  const autoText=(round.mode===0)?round.word.sentences[round.sentIdx][0]:round.word.heb;
+  setTimeout(()=>playQAudio(autoText),300);
+}
+
+// MODE 0: tile sentence
+function buildTileMode(round){
+  const w=round.word;
+  const sent=w.sentences[round.sentIdx];
+  const hebWords=sent[0].split(' ');
+  const shuffledHeb=shuffle([...hebWords]);
+  window._tileState={correct:hebWords, placed:[], pool:[...shuffledHeb], sent};
+
+  let tiles=shuffledHeb.map((t,i)=>`<div class="tile" onclick="moveTileToZone(${i})" id="pool-tile-${i}">${t}</div>`).join('');
+  return `
+    <div class="question-card">
+      <div class="question-mode">Mode Phrases — Reconstituez la phrase</div>
+      <div class="question-fr" style="font-size:1.05rem;margin-bottom:4px">${sent[1]}</div>
+      <div style="font-size:0.8rem;color:var(--text-muted);text-align:center;margin-bottom:2px">${w.fr} · <em>${w.translit}</em></div>
+      <button class="audio-btn" id="qAudioBtn" onclick="playQAudio('${sent[0]}')">▶ Écouter la phrase</button>
+    </div>
+    <div class="sentence-label">Votre phrase :</div>
+    <div class="drop-zone" id="dropZone"></div>
+    <div class="sentence-label">Tuiles disponibles :</div>
+    <div class="tile-pool" id="tilePool">${tiles}</div>
+    <div id="gameFeedback"></div>
+    <div class="game-actions">
+      <button class="btn btn-primary" onclick="checkTile()">Vérifier</button>
+      <button class="btn btn-sm" onclick="clearZone()">Effacer</button>
+      <button class="btn btn-sm" onclick="skipRound()">Passer →</button>
+    </div>
+  `;
+}
+
+function moveTileToZone(idx){
+  const st=window._tileState;
+  const word=st.pool[idx];
+  if(word===null)return;
+  st.pool[idx]=null;
+  st.placed.push({word,idx});
+  refreshTileUI();
+}
+
+function moveTileFromZone(placedIdx){
+  const st=window._tileState;
+  const item=st.placed[placedIdx];
+  st.pool[item.idx]=item.word;
+  st.placed.splice(placedIdx,1);
+  refreshTileUI();
+}
+
+function refreshTileUI(){
+  const st=window._tileState;
+  const pool=document.getElementById('tilePool');
+  const zone=document.getElementById('dropZone');
+  if(!pool||!zone)return;
+  pool.innerHTML=st.pool.map((t,i)=>t!==null
+    ?`<div class="tile" onclick="moveTileFromZone(-1);moveTileToZone(${i})" id="pool-tile-${i}">${t}</div>`
+    :`<div style="display:inline-block;width:0;height:0"></div>`
+  ).join('');
+  // rebuild pool tiles with correct click
+  pool.innerHTML='';
+  st.pool.forEach((t,i)=>{
+    if(t!==null){
+      const el=document.createElement('div');
+      el.className='tile';
+      el.textContent=t;
+      el.onclick=()=>{st.pool[i]=null;st.placed.push({word:t,idx:i});refreshTileUI();};
+      pool.appendChild(el);
+    }
+  });
+  zone.innerHTML='';
+  zone.className='drop-zone'+(st.placed.length?' has-tiles':'');
+  // Render in reverse so placed[0] sits on the right (RTL: last in DOM = leftmost)
+  // direction:rtl on the container means first child = rightmost visually
+  st.placed.forEach((item,pi)=>{
+    const el=document.createElement('div');
+    el.className='tile placed';
+    el.textContent=item.word;
+    el.onclick=()=>{st.pool[item.idx]=item.word;st.placed.splice(pi,1);refreshTileUI();};
+    zone.appendChild(el);
+  });
+}
+
+function clearZone(){
+  const st=window._tileState;
+  st.placed.forEach(item=>st.pool[item.idx]=item.word);
+  st.placed=[];
+  refreshTileUI();
+}
+
+function checkTile(){
+  const st=window._tileState;
+  if(st.placed.length===0)return;
+  const userSent=st.placed.map(p=>p.word).join(' ');
+  const ok=userSent===st.correct.join(' ');
+  const fb=document.getElementById('gameFeedback');
+  const zone=document.getElementById('dropZone');
+  document.querySelectorAll('.game-actions .btn').forEach(b=>b.disabled=true);
+  if(ok){
+    zone.className='drop-zone correct';
+    fb.className='feedback correct';
+    fb.innerHTML='✓ Excellent ! Phrase correcte !';
+    score+=10;streak++;if(streak>maxStreak)maxStreak=streak;correctCount++;
+  } else {
+    zone.className='drop-zone wrong';
+    zone.style.animation='shake 0.3s ease';
+    fb.className='feedback wrong';
+    fb.innerHTML=`✗ Pas tout à fait… <div class="correct-answer">${st.correct.join(' ')}</div><div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px">${st.sent[1]}</div>`;
+    streak=0;
+  }
+  updateScoreDisplay();
+  setTimeout(()=>nextRound(),2200);
+}
+
+// MODE 1: choose heb word
+function buildChooseMode(round){
+  const w=round.word;
+  const distractors=shuffle(words.filter(x=>x.heb!==w.heb)).slice(0,3);
+  const choices=shuffle([w,...distractors]);
+  window._choiceAnswer=w.heb;
+  const choicesHtml=choices.map(c=>`<div class="choice" onclick="checkChoice('${c.heb}','${w.heb}')">${c.heb}</div>`).join('');
+  return `
+    <div class="question-card">
+      <div class="question-mode">Mode Vocabulaire — Quel mot hébreu ?</div>
+      <div class="question-fr" style="font-size:1.4rem;font-weight:500;margin-bottom:6px">${w.fr}</div>
+      <div style="font-size:0.82rem;color:var(--text-muted);text-align:center">${w.translit}</div>
+      <button class="audio-btn" id="qAudioBtn" onclick="playQAudio('${w.heb}')">▶ Écouter</button>
+    </div>
+    <div class="choices-grid" id="choicesGrid">${choicesHtml}</div>
+    <div id="gameFeedback"></div>
+    <div class="game-actions">
+      <button class="btn btn-sm" onclick="skipRound()">Passer →</button>
+    </div>
+  `;
+}
+
+function checkChoice(chosen, correct){
+  document.querySelectorAll('.choice').forEach(el=>{
+    el.onclick=null;
+    if(el.textContent===correct)el.className='choice correct-choice';
+    else if(el.textContent===chosen&&chosen!==correct)el.className='choice wrong-choice';
+  });
+  const ok=chosen===correct;
+  const fb=document.getElementById('gameFeedback');
+  fb.className='feedback '+(ok?'correct':'wrong');
+  fb.textContent=ok?'✓ Bravo !':'✗ Ce n\'était pas le bon mot.';
+  if(ok){score+=10;streak++;if(streak>maxStreak)maxStreak=streak;correctCount++;}
+  else{streak=0;}
+  updateScoreDisplay();
+  setTimeout(()=>nextRound(),1800);
+}
+
+// MODE 2: listen mode
+function buildListenMode(round){
+  const w=round.word;
+  const distractors=shuffle(words.filter(x=>x.fr!==w.fr)).slice(0,3);
+  const choices=shuffle([w,...distractors]);
+  window._listenAnswer=w.fr;
+  const listHtml=choices.map(c=>`
+    <div class="listen-choice" onclick="checkListen('${c.fr}','${w.fr}')">
+      <span class="lc-fr">${c.fr}</span>
+      <span class="lc-heb">${c.heb}</span>
+    </div>`).join('');
+  return `
+    <div class="question-card">
+      <div class="question-mode">Mode Écoute — Que signifie ce mot ?</div>
+      <button class="audio-btn playing" id="qAudioBtn" onclick="playQAudio('${w.heb}')">♪ Réécouter</button>
+      <div class="listen-prompt">Écoutez le mot hébreu et choisissez sa traduction :</div>
+    </div>
+    <div class="listen-choices" id="listenChoices">${listHtml}</div>
+    <div id="gameFeedback"></div>
+    <div class="game-actions">
+      <button class="btn btn-sm" onclick="skipRound()">Passer →</button>
+    </div>
+  `;
+}
+
+function playListenAudio(w){speak(w.heb,0.75);}
+
+function checkListen(chosen, correct){
+  document.querySelectorAll('.listen-choice').forEach(el=>{
+    el.onclick=null;
+    const fr=el.querySelector('.lc-fr').textContent;
+    if(fr===correct)el.className='listen-choice correct-choice';
+    else if(fr===chosen&&chosen!==correct)el.className='listen-choice wrong-choice';
+  });
+  const ok=chosen===correct;
+  const fb=document.getElementById('gameFeedback');
+  fb.className='feedback '+(ok?'correct':'wrong');
+  fb.textContent=ok?'✓ Parfait !':'✗ Ce n\'était pas ça.';
+  if(ok){score+=10;streak++;if(streak>maxStreak)maxStreak=streak;correctCount++;}
+  else{streak=0;}
+  updateScoreDisplay();
+  setTimeout(()=>nextRound(),1800);
+}
+
+function playQAudio(heb){
+  const btn=document.getElementById('qAudioBtn');
+  if(btn){btn.classList.add('playing');}
+  speak(heb).then(()=>{if(btn)btn.classList.remove('playing');});
+}
+
+function updateScoreDisplay(){
+  const sv=document.getElementById('scoreVal');
+  const stv=document.getElementById('streakVal');
+  if(sv)sv.textContent=score;
+  if(stv)stv.textContent=streak;
+}
+
+function nextRound(){gameIdx++;renderRound();}
+function skipRound(){streak=0;nextRound();}
+
+function renderGameOver(){
+  const pct=Math.round((correctCount/TOTAL_ROUNDS)*100);
+  let medal='🌟';
+  if(pct>=90)medal='🏆';
+  else if(pct>=70)medal='🥇';
+  else if(pct>=50)medal='🥈';
+  else medal='📚';
+  const gc=document.getElementById('game-content');
+  gc.innerHTML=`
+    <div class="game-over">
+      <div class="medal">${medal}</div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--text-muted);letter-spacing:0.2em;text-transform:uppercase">Score final</div>
+      <div class="big-score">${score}</div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="sv">${correctCount}/${TOTAL_ROUNDS}</div><div class="sl">Réponses correctes</div></div>
+        <div class="stat-box"><div class="sv">${pct}%</div><div class="sl">Réussite</div></div>
+        <div class="stat-box"><div class="sv">${maxStreak}</div><div class="sl">Série max</div></div>
+      </div>
+      <div class="game-actions" style="justify-content:center;margin-top:8px">
+        <button class="btn btn-primary" onclick="startGame()">↺ Rejouer</button>
+        <button class="btn" onclick="showPage('lexicon')">📖 Réviser le lexique</button>
+      </div>
+    </div>
+  `;
+}
+
+// =================== LISTEN PAGE ===================
+let listenPlayed=new Set(), listenPlaying=false, listenStop_=false;
+
+function buildListenPage(){
+  const ll=document.getElementById('listenList');
+  ll.innerHTML='';
+  words.forEach((w,i)=>{
+    const div=document.createElement('div');
+    div.className='listen-item';
+    div.id='li-'+i;
+    div.onclick=()=>listenPlayOne(i);
+    div.innerHTML=`
+      <div class="word-num" style="font-size:0.72rem;color:var(--text-muted);text-align:center">${String(i+1).padStart(2,'0')}</div>
+      <div><div class="li-heb">${w.heb}</div><div class="li-fr">${w.fr} · <em>${w.translit}</em></div></div>
+      <button class="li-btn" onclick="event.stopPropagation();listenPlayOne(${i})">▶</button>
+    `;
+    ll.appendChild(div);
+  });
+  listenUpdateProgress();
+}
+
+function listenSetState(i,state){
+  const el=document.getElementById('li-'+i);
+  if(!el)return;
+  const btn=el.querySelector('.li-btn');
+  el.className='listen-item'+(state==='playing'?' playing':state==='played'?' played':'');
+  btn.textContent=state==='playing'?'♪':state==='played'?'✓':'▶';
+}
+
+function listenUpdateProgress(){
+  const c=listenPlayed.size;
+  document.getElementById('listenPbFill').style.width=(c/words.length*100)+'%';
+  document.getElementById('listenPbText').textContent=`${c} / ${words.length} écoutés`;
+}
+
+async function listenPlayOne(i){
+  speechSynthesis.cancel();
+  listenSetState(i,'playing');
+  const speed=parseFloat(document.getElementById('listenSpeed').value);
+  await speak(words[i].heb,speed);
+  listenPlayed.add(i);
+  listenSetState(i,'played');
+  listenUpdateProgress();
+}
+
+async function listenPlayAll(){
+  if(listenPlaying)return;
+  listenPlaying=true;listenStop_=false;
+  const speed=parseFloat(document.getElementById('listenSpeed').value);
+  for(let i=0;i<words.length;i++){
+    if(listenStop_)break;
+    listenSetState(i,'playing');
+    document.getElementById('li-'+i).scrollIntoView({behavior:'smooth',block:'nearest'});
+    await speak(words[i].heb,speed);
+    if(!listenStop_){listenPlayed.add(i);listenSetState(i,'played');listenUpdateProgress();}
+    await new Promise(r=>setTimeout(r,500));
+  }
+  listenPlaying=false;
+}
+
+function listenStop(){listenStop_=true;listenPlaying=false;speechSynthesis.cancel();words.forEach((_,i)=>listenSetState(i,listenPlayed.has(i)?'played':'idle'));}
+function listenReset(){listenStop();listenPlayed.clear();words.forEach((_,i)=>listenSetState(i,'idle'));listenUpdateProgress();}
+
+// =================== LEXICON ===================
+function buildLexicon(){
+  renderLex(words);
+}
+
+function renderLex(list){
+  const grid=document.getElementById('lexGrid');
+  grid.innerHTML='';
+  list.forEach((w)=>{
+    const num=String(words.indexOf(w)+1).padStart(2,'0');
+    const div=document.createElement('div');
+    div.className='lex-item';
+    div.innerHTML=`
+      <div class="lex-num">${num}</div>
+      <div class="lex-heb">${w.heb}</div>
+      <div class="lex-info">
+        <div class="lex-fr">${w.fr}</div>
+        <div class="lex-translit">${w.translit}</div>
+        ${w.isNew?'<span class="lex-tag">nouveau</span>':''}
+        <div style="margin-top:6px;font-size:0.78rem;color:var(--text-muted);direction:rtl">${w.sentences[0][0]}</div>
+        <div style="font-size:0.78rem;color:var(--text-muted);font-style:italic">${w.sentences[0][1]}</div>
+      </div>
+      <button class="lex-audio" data-heb="${w.heb}">▶</button>
+    `;
+    const btn=div.querySelector('.lex-audio');
+    btn.addEventListener('click',(e)=>{
+      e.stopPropagation();
+      speakLex(w.heb, btn);
+    });
+    div.addEventListener('click',()=>speakLex(w.heb, btn));
+    grid.appendChild(div);
+  });
+}
+
+function speakLex(heb, btn){
+  document.querySelectorAll('.lex-audio').forEach(b=>{b.classList.remove('playing');b.textContent='▶';});
+  if(btn){btn.classList.add('playing');btn.textContent='♪';}
+  speak(heb).then(()=>{if(btn){btn.classList.remove('playing');btn.textContent='▶';}});
+}
+
+function filterLex(q){
+  const lq=q.toLowerCase().trim();
+  if(!lq){renderLex(words);return;}
+  const filtered=words.filter(w=>w.heb.includes(q)||w.fr.toLowerCase().includes(lq)||w.translit.toLowerCase().includes(lq)||w.sentences.some(s=>s[0].includes(q)||s[1].toLowerCase().includes(lq)));
+  renderLex(filtered);
+}
+
+// =================== LEXICON PLAYBACK ===================
+let lexPlaying=false, lexStopReq=false;
+
+function lexSetActiveBtn(mode){
+  ['lexShuffleHeb','lexShuffleFr','lexShuffleMix'].forEach(id=>{
+    const b=document.getElementById(id);
+    if(b)b.classList.remove('active');
+  });
+  const map={heb:'lexShuffleHeb',fr:'lexShuffleFr',mix:'lexShuffleMix'};
+  if(map[mode]){const b=document.getElementById(map[mode]);if(b)b.classList.add('active');}
+}
+
+function lexShowNow(text,isFr){
+  const el=document.getElementById('lexNowPlaying');
+  if(!el)return;
+  el.style.display='block';
+  el.style.direction=isFr?'ltr':'rtl';
+  el.style.fontStyle=isFr?'italic':'normal';
+  el.style.fontSize=isFr?'1rem':'1.3rem';
+  el.style.color=isFr?'var(--text-muted)':'var(--gold-light)';
+  el.textContent=text;
+}
+
+function lexHideNow(){
+  const el=document.getElementById('lexNowPlaying');
+  if(el)el.style.display='none';
+}
+
+async function lexPlayAll(mode){
+  if(lexPlaying){lexStop();return;}
+  lexPlaying=true;lexStopReq=false;
+  lexSetActiveBtn(mode);
+  const speed=parseFloat(document.getElementById('lexSpeed').value);
+  let list=shuffle([...words]);
+
+  for(let i=0;i<list.length;i++){
+    if(lexStopReq)break;
+    const w=list[i];
+    const domBtn=document.querySelector(`.lex-audio[data-heb="${w.heb}"]`);
+    document.querySelectorAll('.lex-audio').forEach(b=>{b.classList.remove('playing');b.textContent='▶';});
+
+    // decide what to say for this word
+    let sayFr=false;
+    if(mode==='fr') sayFr=true;
+    else if(mode==='mix') sayFr=(i%2===0);
+    // 'heb' and 'ordered' always say Hebrew
+
+    if(domBtn){
+      domBtn.classList.add('playing');domBtn.textContent='♪';
+      domBtn.closest('.lex-item').scrollIntoView({behavior:'smooth',block:'nearest'});
+    }
+
+    if(sayFr){
+      lexShowNow(w.fr,true);
+      // use French TTS
+      await new Promise(res=>{
+        speechSynthesis.cancel();
+        setTimeout(()=>{
+          const u=new SpeechSynthesisUtterance(w.fr);
+          u.lang='fr-FR';u.rate=speed;
+          u.onend=u.onerror=res;
+          speechSynthesis.speak(u);
+        },80);
+      });
+    } else {
+      lexShowNow(w.heb,false);
+      await speak(w.heb,speed);
+    }
+
+    if(domBtn){domBtn.classList.remove('playing');domBtn.textContent='▶';}
+    if(!lexStopReq){
+      const pause=(mode==='ordered')?600:10000;
+      await new Promise(r=>setTimeout(r,pause));
+    }
+  }
+  lexPlaying=false;
+  lexHideNow();
+  lexSetActiveBtn(null);
+}
+
+function lexStop(){
+  lexStopReq=true;lexPlaying=false;
+  speechSynthesis.cancel();
+  document.querySelectorAll('.lex-audio').forEach(b=>{b.classList.remove('playing');b.textContent='▶';});
+  lexHideNow();
+  lexSetActiveBtn(null);
+}
+
+// =================== INIT ===================
+window.addEventListener('load',()=>{
+  startGame();
+  buildListenPage();
+  buildLexicon();
+});
+</script>
+</body>
+</html>
